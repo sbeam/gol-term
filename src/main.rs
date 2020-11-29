@@ -6,8 +6,8 @@ pub mod prelude {
     pub use ggez::{Context, GameResult};
     pub use ggez::mint::Point2;
     pub use crate::universe::*;
-    pub const SCREEN_WIDTH: i32 = 90;
-    pub const SCREEN_HEIGHT: i32 = 90;
+    pub const SCREEN_WIDTH: i32 = 10;
+    pub const SCREEN_HEIGHT: i32 = 10;
     pub const FRAME_DURATION: f32 = 75.0;
 }
 
@@ -37,8 +37,8 @@ struct Point {
 
 #[derive(Debug)]
 struct Deltas {
-    living: Vec<Point2<f32>>,
-    dying: Vec<Point2<f32>>,
+    living: Vec<usize>,
+    dying: Vec<usize>,
 }
 
 #[derive(Debug)]
@@ -68,7 +68,7 @@ impl State {
         if !self.deltas.living.is_empty() {
             println!("there are {} cells being born!", self.deltas.living.len());
             for cell in &self.deltas.living {
-                self.cells[coords_to_index(&cell)] = true;
+                self.cells[*cell] = true;
                 render_cell(ctx, cell, true).expect("Something is very wrong");
             }
             self.deltas.living.clear();
@@ -76,7 +76,7 @@ impl State {
         if !self.deltas.dying.is_empty() {
             println!("there are {} cells dying!", self.deltas.dying.len());
             for cell in &self.deltas.dying {
-                self.cells[coords_to_index(&cell)] = false;
+                self.cells[*cell] = false;
                 render_cell(ctx, cell, false).expect("Something is very wrong");
             }
             self.deltas.dying.clear();
@@ -87,16 +87,18 @@ impl State {
         if self.mouse_down {
             let pos = input::mouse::position(ctx);
             println!("click {:?}", pos);
-            let i = coords_to_index(&pos);
+            let i = coords_to_index(ctx, &pos);
+            println!("that's cell #{:?}", i);
             if self.cells[i] {
-                self.deltas.dying.push(pos);
+                self.deltas.dying.push(i);
             } else {
-                self.deltas.living.push(pos);
+                self.deltas.living.push(i);
             }
             self.render_deltas(ctx);
             self.mouse_down = false;
         }
-        graphics::present(ctx)
+        graphics::present(ctx)?;
+        Ok(())
     }
 }
 
@@ -128,22 +130,25 @@ impl event::EventHandler for State {
     }
 }
 
-fn render_cell(ctx: &mut Context, pos: &Point2<f32>, alive: bool) -> GameResult {
-    println!("cell at {:?} is {}", pos, if alive { "1" } else { "0"});
+fn render_cell(ctx: &mut Context, cell: &usize, alive: bool) -> GameResult {
+    println!("cell at {:?} is {}", cell, if alive { "1" } else { "0"});
+    let coords = cell_to_coords(ctx, cell);
+    println!("circle goes at {:?}", coords);
     let circle = graphics::Mesh::new_circle(
         ctx,
         graphics::DrawMode::fill(),
         Point2 { x: 0.0, y: 0.0 },
-        2.0,
+        10.0,
         1.0,
         if alive { graphics::WHITE } else { graphics::BLACK },
     )?;
-    graphics::draw(ctx, &circle, (*pos,))
+    graphics::draw(ctx, &circle, (coords,))
 }
 
 pub fn main() -> GameResult {
     let cb = ggez::ContextBuilder::new("super_simple", "ggez");
     let (ctx, event_loop) = &mut cb.build()?;
+    // graphics::set_drawable_size(ctx, 800f32, 800f32).expect("Could not size the window!");
     let state = &mut State::new();
     event::run(ctx, event_loop, state)
 }
