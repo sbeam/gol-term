@@ -13,6 +13,7 @@ pub mod prelude {
 
 use prelude::*;
 use std::time::{Duration, Instant};
+use std::collections::HashMap;
 use ggez::input;
 
 // Here we're defining how many quickly we want our game to update. This will be
@@ -36,16 +37,16 @@ struct Point {
 }
 
 #[derive(Debug)]
-struct Deltas {
-    living: Vec<usize>,
-    dying: Vec<usize>,
+struct Cell {
+    alive: bool,
+    age: i8,
 }
 
 #[derive(Debug)]
 struct State {
     mode: GameMode,
     cells: Vec<bool>,
-    deltas: Deltas,
+    deltas: HashMap<usize, Cell>,
     last_update: Instant,
     mouse_down: bool,
 }
@@ -57,46 +58,42 @@ impl State {
             cells: vec![false; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize],
             last_update: Instant::now(),
             mouse_down: false,
-            deltas: Deltas {
-                living: vec![],
-                dying: vec![],
-            }
+            deltas: HashMap::with_capacity((SCREEN_WIDTH * SCREEN_HEIGHT) as usize),
         }
     }
 
     fn render_deltas(&mut self, ctx: &mut Context) {
-        if !self.deltas.living.is_empty() {
-            println!("there are {} cells being born!", self.deltas.living.len());
-            for cell in &self.deltas.living {
-                self.cells[*cell] = true;
-                render_cell(ctx, cell, true).expect("Something is very wrong");
-            }
-            self.deltas.living.clear();
-        }
-        if !self.deltas.dying.is_empty() {
-            println!("there are {} cells dying!", self.deltas.dying.len());
-            for cell in &self.deltas.dying {
-                self.cells[*cell] = false;
-                render_cell(ctx, cell, false).expect("Something is very wrong");
-            }
-            self.deltas.dying.clear();
+        if !self.deltas.is_empty() {
+            println!("there are {} cells growing or dying!", self.deltas.len());
         }
     }
 
+    fn render_cells(&mut self, ctx: &mut Context) -> GameResult {
+        let living: Vec<(usize, &bool)> = self.cells
+            .iter()
+            .enumerate()
+            .filter(|&(_, &value)| value)
+            .collect::<Vec<_>>();
+
+        println!("{:?}", living);
+        for (index, _) in living {
+            render_cell(ctx, &index, true).unwrap()
+        }
+        Ok(())
+    }
+
     fn setup(&mut self, ctx: &mut Context) -> GameResult {
+        graphics::clear(ctx, graphics::BLACK);
         if self.mouse_down {
             let pos = input::mouse::position(ctx);
             println!("click {:?}", pos);
             let i = coords_to_index(ctx, &pos);
             println!("that's cell #{:?}", i);
-            if self.cells[i] {
-                self.deltas.dying.push(i);
-            } else {
-                self.deltas.living.push(i);
-            }
-            self.render_deltas(ctx);
+            self.cells[i] = true;
+            // self.render_deltas(ctx);
             self.mouse_down = false;
         }
+        self.render_cells(ctx)?;
         graphics::present(ctx)?;
         Ok(())
     }
