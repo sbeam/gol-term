@@ -75,7 +75,6 @@ impl State {
             .filter(|&(_, &value)| value)
             .collect::<Vec<_>>();
 
-        println!("{:?}", living);
         for (index, _) in living {
             render_cell(ctx, &index, true).unwrap()
         }
@@ -86,10 +85,13 @@ impl State {
         graphics::clear(ctx, graphics::BLACK);
         if self.mouse_down {
             let pos = input::mouse::position(ctx);
-            println!("click {:?}", pos);
             let i = coords_to_index(ctx, &pos);
-            println!("that's cell #{:?}", i);
-            self.cells[i] = true;
+            println!("click {:?} -> that's cell #{}", pos, i);
+            if self.cells[i] {
+                self.cells[i] = false;
+            } else {
+                self.cells[i] = true;
+            }
             // self.render_deltas(ctx);
             self.mouse_down = false;
         }
@@ -128,9 +130,9 @@ impl event::EventHandler for State {
 }
 
 fn render_cell(ctx: &mut Context, cell: &usize, alive: bool) -> GameResult {
-    println!("cell at {:?} is {}", cell, if alive { "1" } else { "0"});
+    // println!("cell at {:?} is {}", cell, if alive { "1" } else { "0"});
     let coords = cell_to_coords(ctx, cell);
-    println!("circle goes at {:?}", coords);
+    // println!("circle goes at {:?}", coords);
     let circle = graphics::Mesh::new_circle(
         ctx,
         graphics::DrawMode::fill(),
@@ -145,6 +147,8 @@ fn render_cell(ctx: &mut Context, cell: &usize, alive: bool) -> GameResult {
 pub fn main() -> GameResult {
     let cb = ggez::ContextBuilder::new("super_simple", "ggez");
     let (ctx, event_loop) = &mut cb.build()?;
+
+    // TODO: this changes the window size but the x/y coords stay at 800x600, which fcks up the y-spacing
     // graphics::set_drawable_size(ctx, 800f32, 800f32).expect("Could not size the window!");
     let state = &mut State::new();
     event::run(ctx, event_loop, state)
