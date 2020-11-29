@@ -47,6 +47,7 @@ struct State {
     cells: Vec<bool>,
     deltas: Deltas,
     last_update: Instant,
+    mouse_down: bool,
 }
 
 impl State {
@@ -55,6 +56,7 @@ impl State {
             mode: GameMode::Setup,
             cells: vec![false; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize],
             last_update: Instant::now(),
+            mouse_down: false,
             deltas: Deltas {
                 living: vec![],
                 dying: vec![],
@@ -82,7 +84,7 @@ impl State {
     }
 
     fn setup(&mut self, ctx: &mut Context) {
-        if input::mouse::button_pressed(ctx, event::MouseButton::Left) {
+        if self.mouse_down {
             let pos = input::mouse::position(ctx);
             println!("click {:?}", pos);
             let i = coords_to_index(&pos);
@@ -92,6 +94,7 @@ impl State {
                 self.deltas.living.push(pos);
             }
             self.render_deltas(ctx);
+            self.mouse_down = false;
         }
     }
 }
@@ -114,9 +117,19 @@ impl event::EventHandler for State {
         // a GameResult is an Option? what if we had an error?
         Ok(())
     }
+
+    fn mouse_button_down_event(&mut self, _ctx: &mut Context, button: event::MouseButton, x: f32, y: f32) {
+        self.mouse_down = true;
+        println!("Mouse button pressed: {:?}, x: {}, y: {}", button, x, y);
+    }
+
+    fn mouse_button_up_event(&mut self, _ctx: &mut Context, button: event::MouseButton, x: f32, y: f32) {
+        self.mouse_down = false;
+    }
 }
 
 fn render_cell(ctx: &mut Context, pos: &Point2<f32>, alive: bool) -> GameResult {
+    println!("cell at {:?} is {}", pos, if alive { "1" } else { "0"});
     let circle = graphics::Mesh::new_circle(
         ctx,
         graphics::DrawMode::fill(),
