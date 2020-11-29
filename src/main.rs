@@ -6,8 +6,9 @@ pub mod prelude {
     pub use ggez::{Context, GameResult};
     pub use ggez::mint::Point2;
     pub use crate::universe::*;
-    pub const SCREEN_WIDTH: i32 = 10;
-    pub const SCREEN_HEIGHT: i32 = 10;
+    pub const SCREEN_WIDTH: i32 = 100;
+    pub const SCREEN_HEIGHT: i32 = 100;
+    pub const CELL_DIAM: f32 = 3.0;
     pub const FRAME_DURATION: f32 = 75.0;
 }
 
@@ -81,8 +82,7 @@ impl State {
         Ok(())
     }
 
-    fn setup(&mut self, ctx: &mut Context) -> GameResult {
-        graphics::clear(ctx, graphics::BLACK);
+    fn setup(&mut self, ctx: &mut Context) {
         if self.mouse_down {
             let pos = input::mouse::position(ctx);
             let i = coords_to_index(ctx, &pos);
@@ -95,25 +95,26 @@ impl State {
             // self.render_deltas(ctx);
             self.mouse_down = false;
         }
-        self.render_cells(ctx)?;
-        graphics::present(ctx)?;
-        Ok(())
     }
 }
 
 impl event::EventHandler for State {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        match self.mode {
-            GameMode::Setup => self.setup(ctx),
-            // GameMode::Playing => self.play(bterm),
-            // GameMode::Paused => self.pause(bterm),
-            _ => Ok(())
-        }
+        graphics::clear(ctx, graphics::BLACK);
+        self.render_cells(ctx)?;
+        graphics::present(ctx)?;
+        ggez::timer::yield_now();
+        Ok(())
     }
 
-    fn update(&mut self, _ctx: &mut Context) -> GameResult {
+    fn update(&mut self, ctx: &mut Context) -> GameResult {
         if Instant::now() - self.last_update >= Duration::from_millis(MILLIS_PER_UPDATE) {
             self.last_update = Instant::now();
+            match self.mode {
+                GameMode::Setup => self.setup(ctx),
+                // GameMode::Playing => self.play(bterm),
+                // GameMode::Paused => self.pause(bterm),
+            };
         }
         // a GameResult is an Option? what if we had an error?
         Ok(())
@@ -137,7 +138,7 @@ fn render_cell(ctx: &mut Context, cell: &usize, alive: bool) -> GameResult {
         ctx,
         graphics::DrawMode::fill(),
         Point2 { x: 0.0, y: 0.0 },
-        10.0,
+        CELL_DIAM,
         1.0,
         if alive { graphics::WHITE } else { graphics::BLACK },
     )?;
