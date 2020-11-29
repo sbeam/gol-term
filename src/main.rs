@@ -83,7 +83,7 @@ impl State {
         }
     }
 
-    fn setup(&mut self, ctx: &mut Context) {
+    fn setup(&mut self, ctx: &mut Context) -> GameResult {
         if self.mouse_down {
             let pos = input::mouse::position(ctx);
             println!("click {:?}", pos);
@@ -96,6 +96,7 @@ impl State {
             self.render_deltas(ctx);
             self.mouse_down = false;
         }
+        graphics::present(ctx)
     }
 }
 
@@ -105,9 +106,8 @@ impl event::EventHandler for State {
             GameMode::Setup => self.setup(ctx),
             // GameMode::Playing => self.play(bterm),
             // GameMode::Paused => self.pause(bterm),
-            _ => {}
+            _ => Ok(())
         }
-        Ok(())
     }
 
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
@@ -138,10 +138,7 @@ fn render_cell(ctx: &mut Context, pos: &Point2<f32>, alive: bool) -> GameResult 
         1.0,
         if alive { graphics::WHITE } else { graphics::BLACK },
     )?;
-    graphics::draw(ctx, &circle, (*pos,))?;
-
-    graphics::present(ctx)?;
-    Ok(())
+    graphics::draw(ctx, &circle, (*pos,))
 }
 
 pub fn main() -> GameResult {
