@@ -6,8 +6,8 @@ pub mod prelude {
     pub use ggez::graphics;
     pub use ggez::mint::Point2;
     pub use ggez::{Context, GameResult};
-    pub const SCREEN_WIDTH: i32 = 100;
-    pub const SCREEN_HEIGHT: i32 = 100;
+    pub const SCREEN_WIDTH: i32 = 10;
+    pub const SCREEN_HEIGHT: i32 = 10;
     pub const CELL_DIAM: f32 = 3.0;
     pub const FRAME_DURATION: f32 = 75.0;
 
@@ -35,7 +35,6 @@ const MILLIS_PER_UPDATE: u64 = (1.0 / UPDATES_PER_SECOND * 1000.0) as u64;
 enum GameMode {
     Setup,
     Running,
-    // Paused,
 }
 
 #[derive(Debug)]
@@ -72,11 +71,11 @@ impl State {
         }
     }
 
-    fn render_deltas(&mut self, ctx: &mut Context) {
-        if !self.deltas.is_empty() {
-            println!("there are {} cells growing or dying!", self.deltas.len());
-        }
-    }
+    //  fn render_deltas(&mut self, ctx: &mut Context) {
+    //      if !self.deltas.is_empty() {
+    //          println!("there are {} cells growing or dying!", self.deltas.len());
+    //      }
+    //  }
 
     fn render_cells(&mut self, ctx: &mut Context) -> GameResult {
         let living: Vec<(usize, &bool)> = self
@@ -95,7 +94,7 @@ impl State {
     fn setup(&mut self, ctx: &mut Context) {
         if self.mouse_down {
             let pos = input::mouse::position(ctx);
-            let i = coords_to_index(ctx, &pos);
+            let i = coords_to_index(&pos);
             println!("click {:?} -> that's cell #{}", pos, i);
             if self.cells[i] {
                 self.cells[i] = false;
@@ -107,11 +106,14 @@ impl State {
         }
         if self.space_pressed {
             self.mode = GameMode::Running;
+            self.space_pressed = false;
         }
     }
 
-    fn run(&mut self, ctx: &mut Context) {
-        println!("Running")
+    fn run(&mut self) {
+        if !self.space_pressed {
+            self.cells = generation(&mut self.cells);
+        }
     }
 }
 
@@ -129,8 +131,7 @@ impl event::EventHandler for State {
             self.last_update = Instant::now();
             match self.mode {
                 GameMode::Setup => self.setup(ctx),
-                GameMode::Running => self.run(ctx),
-                // GameMode::Paused => self.pause(bterm),
+                GameMode::Running => self.run(),
             };
         }
         // a GameResult is an Option? what if we had an error?
@@ -151,9 +152,9 @@ impl event::EventHandler for State {
     fn mouse_button_up_event(
         &mut self,
         _ctx: &mut Context,
-        button: event::MouseButton,
-        x: f32,
-        y: f32,
+        _button: event::MouseButton,
+        _x: f32,
+        _y: f32,
     ) {
         self.mouse_down = false;
     }
@@ -166,14 +167,15 @@ impl event::EventHandler for State {
         _repeat: bool,
     ) {
         if keycode == KeyCode::Space {
-            self.space_pressed = true;
+            self.space_pressed = !self.space_pressed;
         }
+        println!("space: {}", if self.space_pressed { "on" } else { "off" })
     }
 }
 
 fn render_cell(ctx: &mut Context, cell: &usize, alive: bool) -> GameResult {
     // println!("cell at {:?} is {}", cell, if alive { "1" } else { "0"});
-    let coords = cell_to_coords(ctx, cell);
+    let coords = cell_to_coords(cell);
     // println!("circle goes at {:?}", coords);
     let circle = graphics::Mesh::new_circle(
         ctx,
