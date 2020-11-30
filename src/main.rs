@@ -1,21 +1,28 @@
 mod universe;
 
 pub mod prelude {
+    pub use crate::universe::*;
     pub use ggez::event;
     pub use ggez::graphics;
-    pub use ggez::{Context, GameResult};
     pub use ggez::mint::Point2;
-    pub use crate::universe::*;
+    pub use ggez::{Context, GameResult};
     pub const SCREEN_WIDTH: i32 = 100;
     pub const SCREEN_HEIGHT: i32 = 100;
     pub const CELL_DIAM: f32 = 3.0;
     pub const FRAME_DURATION: f32 = 75.0;
+
+    // TODO get these from `graphics::drawable_size`
+    const WINDOW_W: f32 = 800.0;
+    const WINDOW_H: f32 = 600.0;
+    pub const CELL_W: i32 = WINDOW_W as i32 / SCREEN_WIDTH;
+    pub const CELL_H: i32 = WINDOW_H as i32 / SCREEN_HEIGHT;
 }
 
-use prelude::*;
-use std::time::{Duration, Instant};
-use std::collections::HashMap;
+use ggez::event::{KeyCode, KeyMods};
 use ggez::input;
+use prelude::*;
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 // Here we're defining how many quickly we want our game to update. This will be
 // important later so that we don't have our snake fly across the screen because
@@ -27,7 +34,7 @@ const MILLIS_PER_UPDATE: u64 = (1.0 / UPDATES_PER_SECOND * 1000.0) as u64;
 #[derive(Debug)]
 enum GameMode {
     Setup,
-    // Playing,
+    Running,
     // Paused,
 }
 
@@ -50,6 +57,7 @@ struct State {
     deltas: HashMap<usize, Cell>,
     last_update: Instant,
     mouse_down: bool,
+    space_pressed: bool,
 }
 
 impl State {
@@ -59,6 +67,7 @@ impl State {
             cells: vec![false; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize],
             last_update: Instant::now(),
             mouse_down: false,
+            space_pressed: false,
             deltas: HashMap::with_capacity((SCREEN_WIDTH * SCREEN_HEIGHT) as usize),
         }
     }
@@ -70,7 +79,8 @@ impl State {
     }
 
     fn render_cells(&mut self, ctx: &mut Context) -> GameResult {
-        let living: Vec<(usize, &bool)> = self.cells
+        let living: Vec<(usize, &bool)> = self
+            .cells
             .iter()
             .enumerate()
             .filter(|&(_, &value)| value)
@@ -95,6 +105,13 @@ impl State {
             // self.render_deltas(ctx);
             self.mouse_down = false;
         }
+        if self.space_pressed {
+            self.mode = GameMode::Running;
+        }
+    }
+
+    fn run(&mut self, ctx: &mut Context) {
+        println!("Running")
     }
 }
 
@@ -112,7 +129,7 @@ impl event::EventHandler for State {
             self.last_update = Instant::now();
             match self.mode {
                 GameMode::Setup => self.setup(ctx),
-                // GameMode::Playing => self.play(bterm),
+                GameMode::Running => self.run(ctx),
                 // GameMode::Paused => self.pause(bterm),
             };
         }
@@ -120,13 +137,37 @@ impl event::EventHandler for State {
         Ok(())
     }
 
-    fn mouse_button_down_event(&mut self, _ctx: &mut Context, button: event::MouseButton, x: f32, y: f32) {
+    fn mouse_button_down_event(
+        &mut self,
+        _ctx: &mut Context,
+        button: event::MouseButton,
+        x: f32,
+        y: f32,
+    ) {
         self.mouse_down = true;
         println!("Mouse button pressed: {:?}, x: {}, y: {}", button, x, y);
     }
 
-    fn mouse_button_up_event(&mut self, _ctx: &mut Context, button: event::MouseButton, x: f32, y: f32) {
+    fn mouse_button_up_event(
+        &mut self,
+        _ctx: &mut Context,
+        button: event::MouseButton,
+        x: f32,
+        y: f32,
+    ) {
         self.mouse_down = false;
+    }
+
+    fn key_down_event(
+        &mut self,
+        _ctx: &mut Context,
+        keycode: KeyCode,
+        _keymods: KeyMods,
+        _repeat: bool,
+    ) {
+        if keycode == KeyCode::Space {
+            self.space_pressed = true;
+        }
     }
 }
 
@@ -140,7 +181,11 @@ fn render_cell(ctx: &mut Context, cell: &usize, alive: bool) -> GameResult {
         Point2 { x: 0.0, y: 0.0 },
         CELL_DIAM,
         1.0,
-        if alive { graphics::WHITE } else { graphics::BLACK },
+        if alive {
+            graphics::WHITE
+        } else {
+            graphics::BLACK
+        },
     )?;
     graphics::draw(ctx, &circle, (coords,))
 }
