@@ -59,7 +59,7 @@ pub fn generation(cells: &mut Vec<bool>) -> Vec<bool> {
             cells[(i + right + down) as usize],
         ];
         let neighbors = adjacents.iter().filter(|&&value| value).count();
-        println!("Cell {} has {} neighbors", i, neighbors);
+        // println!("Cell {} has {} neighbors", i, neighbors);
 
         new_cells[i as usize] = if alive {
             !(neighbors < 2 || neighbors > 3)

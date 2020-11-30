@@ -6,8 +6,8 @@ pub mod prelude {
     pub use ggez::graphics;
     pub use ggez::mint::Point2;
     pub use ggez::{Context, GameResult};
-    pub const SCREEN_WIDTH: i32 = 10;
-    pub const SCREEN_HEIGHT: i32 = 10;
+    pub const SCREEN_WIDTH: i32 = 100;
+    pub const SCREEN_HEIGHT: i32 = 100;
     pub const CELL_DIAM: f32 = 3.0;
     pub const FRAME_DURATION: f32 = 75.0;
 
@@ -56,7 +56,6 @@ struct State {
     deltas: HashMap<usize, Cell>,
     last_update: Instant,
     mouse_down: bool,
-    space_pressed: bool,
 }
 
 impl State {
@@ -66,7 +65,6 @@ impl State {
             cells: vec![false; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize],
             last_update: Instant::now(),
             mouse_down: false,
-            space_pressed: false,
             deltas: HashMap::with_capacity((SCREEN_WIDTH * SCREEN_HEIGHT) as usize),
         }
     }
@@ -104,16 +102,10 @@ impl State {
             // self.render_deltas(ctx);
             self.mouse_down = false;
         }
-        if self.space_pressed {
-            self.mode = GameMode::Running;
-            self.space_pressed = false;
-        }
     }
 
     fn run(&mut self) {
-        if !self.space_pressed {
-            self.cells = generation(&mut self.cells);
-        }
+        self.cells = generation(&mut self.cells);
     }
 }
 
@@ -167,9 +159,11 @@ impl event::EventHandler for State {
         _repeat: bool,
     ) {
         if keycode == KeyCode::Space {
-            self.space_pressed = !self.space_pressed;
+            self.mode = match self.mode {
+                GameMode::Setup => GameMode::Running,
+                GameMode::Running => GameMode::Setup,
+            }
         }
-        println!("space: {}", if self.space_pressed { "on" } else { "off" })
     }
 }
 
