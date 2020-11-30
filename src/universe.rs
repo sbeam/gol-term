@@ -21,60 +21,51 @@ pub fn cell_to_coords(i: &usize) -> Point2<f32> {
 }
 
 pub fn generation(cells: &mut Vec<bool>) -> Vec<bool> {
-    let r = SCREEN_WIDTH as usize;
+    let w = SCREEN_WIDTH as isize;
+    let h = SCREEN_HEIGHT as isize;
     let mut new_cells = cells.clone();
 
     for (i, &alive) in cells.iter().enumerate() {
-        if i > r && i < r * (SCREEN_HEIGHT as usize - 1) {
-            let adjacents: [bool; 8] = if i % r == 0 {
-                // left edge col, wraps "up"
-                [
-                    cells[i+1],
-                    cells[i-r],
-                    cells[i+r],
-                    cells[i-r+1],
-                    cells[i+r+1],
-                    cells[i-r-1],
-                    cells[i-1],
-                    cells[i+(2 * r)-1],
-                ]
-            } else if i % r == r - 1 {
-                // right side col, wraps "down"
-                [
-                    cells[i-1], 
-                    cells[i+1], 
-                    cells[i-r], 
-                    cells[i+r], 
-                    cells[i-r-1], 
-                    cells[if i > 2*r { i-(2 * r) +1 } else { 0 }],
-                    cells[i+r-1], 
-                    cells[i-r+1], 
-                ]
-            } else {
-                [
-                    cells[i-1],
-                    cells[i+1],
-                    cells[i-r],
-                    cells[i+r],
-                    cells[i-r-1],
-                    cells[i-r+1],
-                    cells[i+r-1],
-                    cells[i+r+1],
-                ]
-            };
-            let neighbors = adjacents
-                .iter()
-                .filter(|&&value| value)
-                .count();
-            println!("Cell {} has {} neighbors", i, neighbors);
+        let i = i as isize;
+        let up = if i < w {
+            (w * (h - 1)) as isize
+        } else {
+            -(w as isize)
+        };
+        let down = if i >= (w * (h - 1)) {
+            -((w * (h - 1)) as isize)
+        } else {
+            w as isize
+        };
+        let right = if i % w == w - 1 {
+            -(w - 1) as isize
+        } else {
+            1isize
+        };
+        let left = if i % w == 0 {
+            (w - 1) as isize
+        } else {
+            -1isize
+        };
 
-            new_cells[i] = if alive {
-                !(neighbors < 2 || neighbors > 3)
-            } else {
-                neighbors == 3
-            }
+        let adjacents: [bool; 8] = [
+            cells[(i + left + up) as usize],
+            cells[(i + up) as usize],
+            cells[(i + right + up) as usize],
+            cells[(i + left) as usize],
+            cells[(i + right) as usize],
+            cells[(i + left + down) as usize],
+            cells[(i + down) as usize],
+            cells[(i + right + down) as usize],
+        ];
+        let neighbors = adjacents.iter().filter(|&&value| value).count();
+        println!("Cell {} has {} neighbors", i, neighbors);
+
+        new_cells[i as usize] = if alive {
+            !(neighbors < 2 || neighbors > 3)
+        } else {
+            neighbors == 3
         }
     }
     new_cells
 }
-
