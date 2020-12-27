@@ -8,7 +8,7 @@ pub mod prelude {
     pub use ggez::{Context, GameResult};
     pub const SCREEN_WIDTH: i32 = 100;
     pub const SCREEN_HEIGHT: i32 = 100;
-    pub const CELL_DIAM: f32 = 3.0;
+    pub const CELL_DIAM: f32 = 2.0;
     pub const FRAME_DURATION: f32 = 75.0;
 
     // TODO get these from `graphics::drawable_size`
